@@ -1,0 +1,127 @@
+---
+title: "Practical Machine Learning<br>Prediction Assignment Writeup"
+author: Ola Lie
+date: January 30, 2016
+output:
+  html_document:
+    keep_md: true 
+--- 
+Introduction
+------------
+People regularly quantify how much of a particular activity they do, but they rarely quantify how well they do it. In the HAR project (http://groupware.les.inf.puc-rio.br/har) they use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants to develop digital assistants for weight lifting exercises. The participants were asked to perform barbell lifts correctly and incorrectly in 5 different ways: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E). Our goal is to build a model that can predict the class with data from the accelerometers.
+
+Summary
+-------
+I first tried linear discriminant analysis which is a classic method for classification of multiple classes (>2) proposed by Fisher in 1936. The trained lda model gave a 69.3% accuracy on the testing set. Then I tried a Random Forests approach which is one of several tree-based methods. Initially, the training of the model took a long time, but I speeded it up with parallel processing and switching from default bootstrap to k-fold cross-validation. The trained rf model gave a 99.3 % accuracy on the testing set so I did not try any more models. Finally, I listed the ten most important predictors and predicted the 20 unknown classes for the Course Project Prediction Quiz.
+```{r, echo=TRUE, message=FALSE}
+require(caret)      ## Classification And REgression Training
+require(MASS)       ## includes linear discriminant analysis
+require(doParallel) ## parallel processing
+```
+
+Preparing the datasets
+----------------------
+The original data contain 19622 observations and 160 columns. Many columns are empty or filled with NAs. When these are removed, we are left with 53 columns: 52 predictors and one response (classe). I spilt the observations 75% in a training set and 25% in a testing set.
+```{r, echo=TRUE}
+
+## "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+## "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+## setwd("C:/Users/olalie/Documents/DataScience/8_PracticalMachineLearning/COURSE_PROJECTS")
+df <- read.csv('pml-training.csv',na.strings=c("","NA"))
+df2 <- read.csv('pml-testing.csv',na.strings=c("","NA"))
+
+## remove the first seven columns and columns with more than 90% NAs
+df<-df[,-(1:7)]
+df<-df[,colSums(is.na(df))<0.9*nrow(df)]
+dim(df)
+names(df)
+
+set.seed(23)
+inTrain = createDataPartition(df$classe, p = 3/4)[[1]]
+training = df[ inTrain,]
+testing = df[-inTrain,]
+```
+
+Linear Discriminant Analysis
+----------------------------
+This lda model gives a 69.3% accuracy.
+```{r, echo=TRUE}
+set.seed(07)
+lda.fit <- lda(classe~.,data=training)
+lda.pred <- predict(lda.fit,testing)
+lda.cm <- confusionMatrix(lda.pred$class,testing$classe)
+lda.cm$overall['Accuracy']
+lda.cm$table
+```
+
+Building a Random Forests Classification Model
+----------------------------------------------
+Random forests is known to be one of the best among classification algorithms. I have chosen to use five-fold cross validation. Using five-fold or ten-fold cross-validation have been shown empirically to yield test error rate estimates that suffer neither from excessively high bias nor from very high variance (ref. page 184 http://www-bcf.usc.edu/~gareth/ISL/) This rf model gives a 99.3% accuracy.
+```{r, echo=TRUE,message=FALSE}
+
+## configure parallel processing
+cluster <- makeCluster(detectCores()-1)
+registerDoParallel(cluster)
+
+## configure trainControl object
+fitControl <- trainControl(method="cv", number=5, allowParallel = TRUE)
+
+## develop training model
+set.seed(57)
+t1<-Sys.time()  ## timestamp to measure runtime, see Appendix Runtime
+rf.fit  <- train(classe~., data=training, method="rf",trControl=fitControl)
+t2<-Sys.time()  ## timestamp to measure runtime, see Appendix Runtime
+
+## de-register parallel processing cluster
+stopCluster(cluster)
+```
+```{r, echo=TRUE}
+rf.pred <- predict(rf.fit, testing)
+rf.cm <-confusionMatrix(testing$classe, rf.pred)   
+rf.cm$overall['Accuracy']
+rf.cm$table
+```
+
+Interpretation
+--------------
+Here are the ten most important variables using the mean decrease i Gini index, expressed relative to the maximum.
+```{r, echo=TRUE}
+## Variable importance using the mean decrease in Gini index.
+rf.imp <- importance(rf.fit$finalModel)
+rf.imp <- rf.imp[order(rf.imp,decreasing = TRUE),,drop=FALSE]
+rf.imp <- rf.imp[1:10,,drop=FALSE]
+rf.imp <- data.frame(100*rf.imp/rf.imp[1])
+
+par(mar=c(5,10,4,2))            ## get enough space for the variable names
+barplot(rf.imp$MeanDecreaseGini,
+    horiz=TRUE,
+    names.arg=rownames(rf.imp),
+    col='red',
+    las=1,
+    main="Variable importance", 
+  	xlab="Relative importance")
+par(mar=c(5.1, 4.1, 4.1, 2.1))  ## reset margins
+```
+
+Predictions
+-----------
+Below you find the predictions for the unknown classes in the Course Project Prediction Quiz (Score 20/20)
+```{r, echo=TRUE}
+predict(rf.fit,df2)
+```
+
+Appendix
+--------
+```{r, echo=TRUE}
+t<-round(as.numeric(difftime(t2,t1,units='min')),1)
+```
+
+Runtime
+-------
+It took `r t` minutes to train this random forests model.  
+
+Session Info
+------------
+```{r, echo=TRUE}
+sessionInfo()
+```
