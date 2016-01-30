@@ -22,7 +22,7 @@ The original data contain 19622 observations and 160 columns. Many columns are e
 ```r
 ## "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
 ## "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
-## setwd("C:/Users/olalie/Documents/DataScience/8_PracticalMachineLearning/COURSE_PROJECTS")
+setwd("C:/Users/olalie/Documents/DataScience/8_PracticalMachineLearning/COURSE_PROJECTS")
 df <- read.csv('pml-training.csv',na.strings=c("","NA"))
 df2 <- read.csv('pml-testing.csv',na.strings=c("","NA"))
 
@@ -101,7 +101,7 @@ lda.cm$table
 
 Building a Random Forests Classification Model
 ----------------------------------------------
-Random forests is known to be one of the best among classification algorithms. I have chosen to use five-fold cross validation. Using five-fold or ten-fold cross-validation have been shown empirically to yield test error rate estimates that suffer neither from excessively high bias nor from very high variance (ref. page 184 http://www-bcf.usc.edu/~gareth/ISL/) This rf model gives a 99.3% accuracy.
+Random forests is known to be one of the best among classification algorithms. I have chosen to use five-fold cross validation. Using five-fold or ten-fold cross-validation have been shown empirically to yield test error rate estimates that suffer neither from excessively high bias nor from very high variance (ref. page 184 http://www-bcf.usc.edu/~gareth/ISL/) This rf model gives a 99.3% &plusmn;0.2% (95% CI) accuracy for the testing data implying an out of sample error of 0.7%.
 
 ```r
 ## configure parallel processing
@@ -124,12 +124,12 @@ stopCluster(cluster)
 ```r
 rf.pred <- predict(rf.fit, testing)
 rf.cm <-confusionMatrix(testing$classe, rf.pred)   
-rf.cm$overall['Accuracy']
+rf.cm$overall[c('Accuracy','AccuracyLower','AccuracyUpper')]
 ```
 
 ```
-##  Accuracy 
-## 0.9932708
+##      Accuracy AccuracyLower AccuracyUpper 
+##     0.9932708     0.9905626     0.9953635
 ```
 
 ```r

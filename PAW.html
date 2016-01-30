@@ -84,7 +84,7 @@ require(doParallel) ## parallel processing</code></pre>
 <p>The original data contain 19622 observations and 160 columns. Many columns are empty or filled with NAs. When these are removed, we are left with 53 columns: 52 predictors and one response (classe). I spilt the observations 75% in a training set and 25% in a testing set.</p>
 <pre class="r"><code>## &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;)
 ## &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;)
-## setwd(&quot;C:/Users/olalie/Documents/DataScience/8_PracticalMachineLearning/COURSE_PROJECTS&quot;)
+setwd(&quot;C:/Users/olalie/Documents/DataScience/8_PracticalMachineLearning/COURSE_PROJECTS&quot;)
 df &lt;- read.csv('pml-training.csv',na.strings=c(&quot;&quot;,&quot;NA&quot;))
 df2 &lt;- read.csv('pml-testing.csv',na.strings=c(&quot;&quot;,&quot;NA&quot;))
 
@@ -138,7 +138,7 @@ lda.cm$overall['Accuracy']</code></pre>
 </div>
 <div id="building-a-random-forests-classification-model" class="section level2">
 <h2>Building a Random Forests Classification Model</h2>
-<p>Random forests is known to be one of the best among classification algorithms. I have chosen to use five-fold cross validation. Using five-fold or ten-fold cross-validation have been shown empirically to yield test error rate estimates that suffer neither from excessively high bias nor from very high variance (ref. page 184 <a href="http://www-bcf.usc.edu/~gareth/ISL/" class="uri">http://www-bcf.usc.edu/~gareth/ISL/</a>) This rf model gives a 99.3% accuracy.</p>
+<p>Random forests is known to be one of the best among classification algorithms. I have chosen to use five-fold cross validation. Using five-fold or ten-fold cross-validation have been shown empirically to yield test error rate estimates that suffer neither from excessively high bias nor from very high variance (ref. page 184 <a href="http://www-bcf.usc.edu/~gareth/ISL/" class="uri">http://www-bcf.usc.edu/~gareth/ISL/</a>) This rf model gives a 99.3% ±0.2% (95% CI) accuracy for the testing data implying an out of sample error of 0.7%.</p>
 <pre class="r"><code>## configure parallel processing
 cluster &lt;- makeCluster(detectCores()-1)
 registerDoParallel(cluster)
@@ -156,9 +156,9 @@ t2&lt;-Sys.time()  ## timestamp to measure runtime, see Appendix Runtime
 stopCluster(cluster)</code></pre>
 <pre class="r"><code>rf.pred &lt;- predict(rf.fit, testing)
 rf.cm &lt;-confusionMatrix(testing$classe, rf.pred)   
-rf.cm$overall['Accuracy']</code></pre>
-<pre><code>##  Accuracy 
-## 0.9932708</code></pre>
+rf.cm$overall[c('Accuracy','AccuracyLower','AccuracyUpper')]</code></pre>
+<pre><code>##      Accuracy AccuracyLower AccuracyUpper 
+##     0.9932708     0.9905626     0.9953635</code></pre>
 <pre class="r"><code>rf.cm$table</code></pre>
 <pre><code>##           Reference
 ## Prediction    A    B    C    D    E
